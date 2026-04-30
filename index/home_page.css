@@ -4,3 +4,6 @@
 .DiaryTextBox{
     color:green;
 }
+label{
+    white-space: nowrap;
+}
