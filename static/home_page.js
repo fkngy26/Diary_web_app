@@ -54,4 +54,13 @@ const addTaskView=(taskName,listObj)=>{
     listObj.appendChild(label);
 }
 
+const sent=()=>{
+    fetch(["http://127.0.0.1:5000"]) // リクエストを送信
+	.then((response) => response.json())
+	.then((data) => {console.log(data);});
+
+    console.log(text)
+}
+
 initialize();
+sent();
