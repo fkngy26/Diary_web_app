@@ -22,7 +22,7 @@ def create_app(test_config=None):
   def hello():
     return 'hello,World'
 
-  from . import today, db, habits
+  from . import today, db, habits, log
   db.init_app(app)
 
   app.register_blueprint(today.bp)
@@ -30,5 +30,8 @@ def create_app(test_config=None):
   
   app.register_blueprint(habits.bp)
   app.add_url_rule('/',endpoint='habits')
+
+  app.register_blueprint(log.bp)
+  app.add_url_rule('/',endpoint='logList')
 
   return app

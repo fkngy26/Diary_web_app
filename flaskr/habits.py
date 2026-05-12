@@ -10,15 +10,41 @@ bp=Blueprint('habits',__name__,url_prefix='/habits')
 
 @bp.route('/edit',methods=['GET','POST'])
 def edit():
-  if request.method=="GET":
-    pass
-    # try:
-      # pass
-      
-  # DBからSQLで抽出
-  # habitに代入して、render_templateの引数として渡す。
-  habits={'habit_name':'getup'}
-  return render_template(
-    'habits/edit.html',
-    habits=habits
-  )
+  db=get_db()
+  # db.execute(
+  #   'INSERT INTO habit (habit_name,is_active) VALUES(?,?)',
+  #   ('getUp',1)
+  # )
+  # db.commit()
+
+  # 全削除
+  # db.execute(
+  #   'DELETE FROM habit'
+  # )
+  # db.commit()
+
+  if request.method=="POST":
+    db.execute(
+      'UPDATE habit SET is_active = 0'
+    )
+    check_list=request.form.getlist('habit_ids')
+    if check_list:
+      db.execute(
+        # WHERE id IN (?, ?, ?)を作っている
+        f'UPDATE habit SET is_active =1 WHERE id IN ({",".join("?"*len(check_list))})',
+        check_list
+      )
+    db.commit()
+    return redirect(url_for('today.writeTodayDiary'))
+  
+  try:
+    db_tasks=db.execute(
+      'SELECT * FROM habit'
+    ).fetchall()
+    # habits=[row[1] for row in db_tasks]
+    return render_template(
+      'habits/edit.html',
+      habits=db_tasks
+    )
+  except Exception as e:
+    return str(e)

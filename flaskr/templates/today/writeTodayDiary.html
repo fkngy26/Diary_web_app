@@ -1,15 +1,21 @@
-<!DOCTYPE html>
-<html>
-  <head>
-  <title>Diary_app</title>
-  <meta charset="UTF-8">
-  <link rel="stylesheet" href="{{ url_for('static', filename='home_page.css') }}">
-  </head>
-  <html>
-    <form method="post" action="{{url_for('today.writeTodayDiary')}}">
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Today's Diary{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+    <form method="post" action="{{ url_for('today.writeTodayDiary') }}">
       <div id="task_style">
         <h2>振り返り</h2>
-        <input type="checkbox" name="task" id="task"><label for="task">task1</label>
+        {% for habit in habits %}
+        <input type="checkbox" name="habit_ids" value="{{habit['id']}}">
+        {{habit['habit_name']}}
+        <br>
+        {% else %}
+        <p>No exit habits</p>
+        {% endfor %}
+        <br><a href="{{ url_for('habits.edit')}}">編集</a>
       </div>
       <div>
         <label for="diary">
@@ -19,5 +25,4 @@
       </div>
       <input type="submit" value="regist">
     </form>
-  </html>
-  </html>
+{% endblock %}

@@ -6,7 +6,7 @@ CREATE TABLE diary (
   date TEXT NOT NULL,
   diary_text TEXT
 );
-CREATE TABLE habits (
+CREATE TABLE habit (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   habit_name TEXT NOT NULL,
   is_active INTEGER NOT NULL DEFAULT 1
