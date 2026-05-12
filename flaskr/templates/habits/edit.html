@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <title>Diary_app</title>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="{{ url_for('static', filename='home_page.css') }}">
+  </head>
+  <html>
+    <form method="post" action="{{url_for('today.writeTodayDiary')}}">
+      <h2>habits</h2>
+      <p>{{habits['habit_name']}}</p>
+      <input type="button" name="task1" value="delete">
+    </form>
+  </html>
+  </html>

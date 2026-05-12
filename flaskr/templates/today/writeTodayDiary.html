@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <title>Diary_app</title>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="{{ url_for('static', filename='home_page.css') }}">
+  </head>
+  <html>
+    <form method="post" action="{{url_for('today.writeTodayDiary')}}">
+      <div id="task_style">
+        <h2>振り返り</h2>
+        <input type="checkbox" name="task" id="task"><label for="task">task1</label>
+      </div>
+      <div>
+        <label for="diary">
+        <h2>今日の出来事</h2>
+        </label>
+        <textarea name="diary" id="diary"></textarea>
+      </div>
+      <input type="submit" value="regist">
+    </form>
+  </html>
+  </html>

@@ -1,8 +1,26 @@
 // local easy DB
 let Tasks=[];
 
+const apiHogeUrl="http://127.0.0.1:5000/api/hoge"
+const apiDBUrl="http://127.0.0.1:5000/api/inputDB"
+
 const initialize=()=>{
-    console.log("init");
+    // サーバからのデータの受け取り
+    fetch(apiHogeUrl)
+    .then((response)=>response.json())
+    .then((data)=>{
+        console.log(data)
+    })
+    // サーバにデータの受け渡し
+    fetch(apiDBUrl,{
+        method:'POST',
+        headers:{
+            'Content-Type':'apilication/json'
+        },
+        body:JSON.stringify({
+            'message':'data from front'
+        })
+    })
 }
 
 let addTaskButton=document.getElementById("addTaskBtn");
@@ -54,13 +72,4 @@ const addTaskView=(taskName,listObj)=>{
     listObj.appendChild(label);
 }
 
-const sent=()=>{
-    fetch(["http://127.0.0.1:5000"]) // リクエストを送信
-	.then((response) => response.json())
-	.then((data) => {console.log(data);});
-
-    console.log(text)
-}
-
 initialize();
-sent();
