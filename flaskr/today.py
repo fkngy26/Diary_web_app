@@ -5,6 +5,7 @@ from flask import(
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 from flaskr.db import get_db
+import datetime
 
 bp = Blueprint('today', __name__, url_prefix='/today')
 
@@ -16,15 +17,27 @@ def writeTodayDiary():
     error=None
 
     try:
-      # 
       placeholder=",".join("?"*len(task))
       activeTasks=db.execute(
         f"SELECT * FROM habit WHERE id IN ({placeholder})",
         task
       ).fetchall()
-      for a in activeTasks:
-        print(a["habit_name"])
-      # print([a[0] for a in activeTasks])
+
+      task_objects=[]
+      for task in activeTasks:
+        task_object=[]
+        task_object.append(task['id'])
+        task_object.append(task['habit_name'])
+        task_object.append(datetime.datetime.today().date())
+        print(task_object)
+        task_objects.append(task_object)
+      print(task_objects)
+      
+      db.executemany(
+        "INSERT INTO habit_logs (id, habit_id, date) VALUES (?,?,?)",
+          task_objects
+      )
+      db.commit()
     except Exception as e:
       print(str(e))
 
@@ -52,7 +65,7 @@ def writeTodayDiary():
     ).fetchall()
     return render_template(
       'today/writeTodayDiary.html',
-      habits=db_tasks
+      habits=db_tasks,
     )
   except Exception as e:
     return str(e)

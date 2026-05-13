@@ -6,6 +6,7 @@
 
 {% block content %}
     <form method="post" action="{{ url_for('today.writeTodayDiary') }}">
+      <p>{{date}}</p>
       <div id="task_style">
         <h2>振り返り</h2>
         {% for habit in habits %}

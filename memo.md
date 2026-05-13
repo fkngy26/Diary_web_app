@@ -1,4 +1,7 @@
 flaskr/__init__のSECRET='dev'の部分は、デプロイする際は変更する
 
-Today.pyのサーバ側が受信する部分までを完成させることができた。
-つぎは、データをもとにhabit_logsにデータを追加していく必要がある。
+today.pyのDBに入れる部分を書いた
+      db.executemany(
+        "INSERT INTO habit_logs (id, habit_id, date) VALUES (?,?,?)",
+          task_objects
+      )
