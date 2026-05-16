@@ -10,4 +10,16 @@ bp=Blueprint('log',__name__,url_prefix='/log')
 
 @bp.route('/logList')
 def logList():
-    return "log"
+    db=get_db()
+    if request.method=="GET":
+        try:
+            logs=db.execute(
+                "SELECT * FROM habit_logs"
+            ).fetchall()
+            return render_template(
+                "log/logList.html",
+                logs=logs
+            )
+        except Exception as e:
+            return str(e)
+    # return render_template("log/logList.html")

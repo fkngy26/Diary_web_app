@@ -23,20 +23,23 @@ def edit():
   # )
   # db.commit()
 
-  if request.method=="POST":
-    db.execute(
-      'UPDATE habit SET is_active = 0'
-    )
-    check_list=request.form.getlist('habit_ids')
-    if check_list:
+  try:
+    if request.method=="POST":
       db.execute(
-        # WHERE id IN (?, ?, ?)を作っている
-        f'UPDATE habit SET is_active =1 WHERE id IN ({",".join("?"*len(check_list))})',
-        check_list
+        'UPDATE habit SET is_active = 0'
       )
-    db.commit()
-    return redirect(url_for('today.writeTodayDiary'))
-  
+      check_list=request.form.getlist('habit_ids')
+      if check_list:
+        db.execute(
+          # WHERE id IN (?, ?, ?)を作っている
+          f'UPDATE habit SET is_active =1 WHERE id IN ({",".join("?"*len(check_list))})',
+          check_list
+        )
+      db.commit()
+      return redirect(url_for('today.writeTodayDiary'))
+  except Exception as e:
+    return str(e)
+
   try:
     db_tasks=db.execute(
       'SELECT * FROM habit'

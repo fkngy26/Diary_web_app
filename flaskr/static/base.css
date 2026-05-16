@@ -1,0 +1,24 @@
+/* リンクの青い線や色をリセット */
+.card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block; /* ボックス全体をリンク範囲にするために重要 */
+  width: 300px;   /* ボックスの幅 */
+  margin-bottom: 20px;
+}
+
+/* 四角いボックスのデザイン */
+.card {
+  padding: 20px;
+  border: 2px solid #ccc;
+  border-radius: 8px; /* 角を少し丸くする */
+  background-color: #fff;
+  transition: transform 0.2s, box-shadow 0.2s; /* 動きを滑らかに */
+}
+
+/* ホバー時（マウスが乗った時）やタップ時の反応 */
+.card:hover {
+  transform: translateY(-5px); /* 少し上に浮く */
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1); /* 影を付けて浮遊感を出す */
+  border-color: #007bff; /* 枠線の色を変える */
+}

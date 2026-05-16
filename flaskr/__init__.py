@@ -26,12 +26,12 @@ def create_app(test_config=None):
   db.init_app(app)
 
   app.register_blueprint(today.bp)
-  app.add_url_rule('/',endpoint='today.writeTodayDiary')
-  
-  app.register_blueprint(habits.bp)
-  app.add_url_rule('/',endpoint='habits')
+  app.add_url_rule('/today',endpoint='today.writeTodayDiary')
 
   app.register_blueprint(log.bp)
-  app.add_url_rule('/',endpoint='logList')
+  app.add_url_rule('/',endpoint='log.logList')
+  
+  app.register_blueprint(habits.bp)
+  app.add_url_rule('/habits',endpoint='habits.edit')
 
   return app
