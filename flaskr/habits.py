@@ -8,7 +8,7 @@ from flaskr.db import get_db
 
 bp=Blueprint('habits',__name__,url_prefix='/habits')
 
-@bp.route('/edit',methods=['GET','POST'])
+@bp.route('/list',methods=['GET','POST'])
 def edit():
   db=get_db()
   # db.execute(
@@ -24,6 +24,7 @@ def edit():
   # db.commit()
 
   try:
+    # POST
     if request.method=="POST":
       db.execute(
         'UPDATE habit SET is_active = 0'
@@ -37,10 +38,8 @@ def edit():
         )
       db.commit()
       return redirect(url_for('today.writeTodayDiary'))
-  except Exception as e:
-    return str(e)
-
-  try:
+    
+    # GET
     db_tasks=db.execute(
       'SELECT * FROM habit'
     ).fetchall()
@@ -49,5 +48,27 @@ def edit():
       'habits/edit.html',
       habits=db_tasks
     )
+  
+  except Exception as e:
+    return str(e)
+  
+@bp.route('/<int:habit_id>',methods=["GET","POST"])
+def habbit_id(habit_id):
+  db=get_db()
+
+  try:
+    # POST
+    if request.method=="POST":
+      pass
+    
+    # GET
+    habit_obj=db.execute(
+      'SELECT * FROM habit WHERE id=(?)',(habit_id,)
+    ).fetchone()
+    return render_template(
+      'habits/edit.html',
+      habit_obj=habit_obj
+    )
+  
   except Exception as e:
     return str(e)

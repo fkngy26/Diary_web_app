@@ -2,23 +2,12 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>{% block title %}Editor{% endblock %}</h1>
+  <h1>{% block title %}{{habit_obj['habit_name']}}{% endblock %}</h1>
 {% endblock %}
 
 {% block content %}
   <form method="post" action="{{url_for('habits.edit')}}">
-    <h2>Habits Editor</h2>
-    <ul>
-      {% for habit in habits %}
-      <li>
-        <input type="checkbox" name="habit_ids" value="{{habit['id']}}"
-          {% if habit['is_active'] == 1 %} checked {% endif %}>
-        {{habit['habit_name']}}
-      </li>
-      {% else %}
-      <li>登録されている習慣はまだありません</li>
-      {% endfor %}
-    </ul>
+
     <button type="submit">save</button>
   </form>
 {% endblock %}

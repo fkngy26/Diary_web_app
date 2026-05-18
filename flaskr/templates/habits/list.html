@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Habits List{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <form method="post" action="{{url_for('habits.edit')}}">
+    <h2>Habits</h2>
+      {% for habit in habits %}
+      <a href="habits/edit/{{habit.id}}">
+        <div class="card">
+          {{habit['habit_name']}}
+        </div>
+      </a>
+      {% else %}
+      <li>登録されている習慣はまだありません</li>
+      {% endfor %}
+    <button type="submit">save</button>
+  </form>
+{% endblock %}
