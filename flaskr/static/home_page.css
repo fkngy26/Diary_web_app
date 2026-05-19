@@ -25,3 +25,11 @@
   box-shadow: 0 4px 15px rgba(0,0,0,0.1); /* 影を付けて浮遊感を出す */
   border-color: #007bff; /* 枠線の色を変える */
 }
+
+.detail {
+  display: none;
+}
+/* toggleがチェックされたとき、後ろにある兄弟クラスのdetailのdisplayをblockにするということになる */
+#toggle:checked ~ .detail {
+  display: block;
+}

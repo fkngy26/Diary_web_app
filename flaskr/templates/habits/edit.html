@@ -2,12 +2,34 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>{% block title %}{{habit_obj['habit_name']}}{% endblock %}</h1>
+  <h1>{% block title %}Habit Editor{% endblock %}</h1>
 {% endblock %}
 
 {% block content %}
   <form method="post" action="{{url_for('habits.edit')}}">
-
+    <div>
+      <label for="taskName">
+        タスク名
+      </label><br>
+      <input type="text" name="taskname" value={{habit_obj['habit_name']}} id="taskName">
+    </div>
+    <div>
+      <label>
+        繰り返しの間隔<br>
+        <input type="number" min="1" max="31" value="1">
+      </label>
+    </div>
+    <div>
+      <input type="checkbox" id="toggle">
+      <label for="toggle">
+        終了予定を設定
+      </label>
+      <div class="detail">
+        <label>
+          <input type="date" name="habitEndDate">
+        </label>
+      </div>
+    </div>
     <button type="submit">save</button>
   </form>
 {% endblock %}

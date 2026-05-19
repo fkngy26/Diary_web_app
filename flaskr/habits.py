@@ -10,6 +10,7 @@ bp=Blueprint('habits',__name__,url_prefix='/habits')
 
 @bp.route('/list',methods=['GET','POST'])
 def edit():
+  print("list")
   db=get_db()
   # db.execute(
   #   'INSERT INTO habit (habit_name,is_active) VALUES(?,?)',
@@ -26,28 +27,43 @@ def edit():
   try:
     # POST
     if request.method=="POST":
-      db.execute(
-        'UPDATE habit SET is_active = 0'
-      )
-      check_list=request.form.getlist('habit_ids')
-      if check_list:
+      action=request.form["action"]
+
+      # Habit追加のページを渡す
+      if action=="add":
+        pass
+
+      # Habitのリストから戻る
+      elif action=="save":
         db.execute(
-          # WHERE id IN (?, ?, ?)を作っている
-          f'UPDATE habit SET is_active =1 WHERE id IN ({",".join("?"*len(check_list))})',
-          check_list
+          'UPDATE habit SET is_active = 0'
         )
-      db.commit()
-      return redirect(url_for('today.writeTodayDiary'))
+        check_list=request.form.getlist('habit_ids')
+        if check_list:
+          db.execute(
+            # WHERE id IN (?, ?, ?)を作っている
+            f'UPDATE habit SET is_active =1 WHERE id IN ({",".join("?"*len(check_list))})',
+            check_list
+          )
+        db.commit()
+        return redirect(url_for('today.writeTodayDiary'))
     
     # GET
     db_tasks=db.execute(
       'SELECT * FROM habit'
     ).fetchall()
+    max_id=db.execute(
+      'SELECT MAX(id) FROM habit'
+    ).fetchone()[0]
+    if db_tasks:
     # habits=[row[1] for row in db_tasks]
-    return render_template(
-      'habits/edit.html',
-      habits=db_tasks
-    )
+      return render_template(
+        'habits/list.html',
+        habits=db_tasks,
+        habits_length=max_id+1
+      )
+    else:
+      return "タスクが存在しません"
   
   except Exception as e:
     return str(e)
