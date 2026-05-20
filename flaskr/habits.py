@@ -10,7 +10,6 @@ bp=Blueprint('habits',__name__,url_prefix='/habits')
 
 @bp.route('/list',methods=['GET','POST'])
 def edit():
-  print("list")
   db=get_db()
   # db.execute(
   #   'INSERT INTO habit (habit_name,is_active) VALUES(?,?)',
@@ -31,36 +30,49 @@ def edit():
 
       # Habit追加のページを渡す
       if action=="add":
-        pass
+        obj=db.execute(
+          'SELECT * FROM habit'
+        ).fetchall()
+        for a in obj:
+          print(dict(a))
+
+
+        # edit.htmlで使用する最低限のデータを渡しておきたい
+        default_habit_obj={
+          'habit_name':""
+        }
+        return render_template(
+          'habits/edit.html',
+          habit_obj=default_habit_obj
+        )
 
       # Habitのリストから戻る
-      elif action=="save":
-        db.execute(
-          'UPDATE habit SET is_active = 0'
-        )
-        check_list=request.form.getlist('habit_ids')
-        if check_list:
-          db.execute(
-            # WHERE id IN (?, ?, ?)を作っている
-            f'UPDATE habit SET is_active =1 WHERE id IN ({",".join("?"*len(check_list))})',
-            check_list
-          )
-        db.commit()
+      elif action=="back":
+        # db.execute(
+        #   'UPDATE habit SET is_active = 0'
+        # )
+        # check_list=request.form.getlist('habit_ids')
+        # if check_list:
+        #   db.execute(
+        #     # WHERE id IN (?, ?, ?)を作っている
+        #     f'UPDATE habit SET is_active =1 WHERE id IN ({",".join("?"*len(check_list))})',
+        #     check_list
+        #   )
+        # db.commit()
         return redirect(url_for('today.writeTodayDiary'))
+      
+      elif action=="save":
+        print("save")
     
     # GET
-    db_tasks=db.execute(
+    db_habits=db.execute(
       'SELECT * FROM habit'
     ).fetchall()
-    max_id=db.execute(
-      'SELECT MAX(id) FROM habit'
-    ).fetchone()[0]
-    if db_tasks:
+    if db_habits:
     # habits=[row[1] for row in db_tasks]
       return render_template(
         'habits/list.html',
-        habits=db_tasks,
-        habits_length=max_id+1
+        habits=db_habits
       )
     else:
       return "タスクが存在しません"
@@ -69,7 +81,7 @@ def edit():
     return str(e)
   
 @bp.route('/<int:habit_id>',methods=["GET","POST"])
-def habbit_id(habit_id):
+def habit_id(habit_id):
   db=get_db()
 
   try:
