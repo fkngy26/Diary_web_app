@@ -2,11 +2,11 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>{% block title %}Habit Editor{% endblock %}</h1>
+  <h1>{% block title %}Add Habit{% endblock %}</h1>
 {% endblock %}
 
 {% block content %}
-  <form method="post" action="{{url_for('habits.edit',habit_id=habit_obj['id'])}}">
+  <form method="post" action="{{url_for('habits.add')}}">
     <div>
       <label for="habit_name">
         タスク名
@@ -31,6 +31,6 @@
       </div>
     </div>
     <button type="submit" name="action" value="cancel">cancel</button>
-    <button type="submit" name="action" value="save">save</button>
+    <button type="submit" name="action" value="add">add</button>
   </form>
 {% endblock %}

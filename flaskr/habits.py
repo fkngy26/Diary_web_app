@@ -5,94 +5,103 @@ from flask import(
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 from flaskr.db import get_db
+import datetime
 
 bp=Blueprint('habits',__name__,url_prefix='/habits')
 
-@bp.route('/list',methods=['GET','POST'])
-def edit():
+@bp.route('/add',methods=['GET','POST'])
+def add():
   db=get_db()
-  # db.execute(
-  #   'INSERT INTO habit (habit_name,is_active) VALUES(?,?)',
-  #   ('getUp',1)
-  # )
-  # db.commit()
+  if request.method=="POST":
+    action=request.form["action"]
 
-  # 全削除
-  # db.execute(
-  #   'DELETE FROM habit'
-  # )
-  # db.commit()
+    # Habit追加のページを渡す
+    if action=="add":
+      row_habit_obj={
+        'habit_name':request.form.get('habit_name'),
+        'repeat_interval':request.form.get('repeat_interval'),
+        'is_end':1 if request.form.get('is_end')=="on" else 0,
+        'end_date':request.form.get('habitEndDate'),
+        'start_date':str(datetime.date.today())
+      }
+      # Noneを省きたい
+      habit_obj={k:v for k,v in row_habit_obj.items() if v != "" and v is not None}
+      row_key=habit_obj.keys()
+      values=tuple(habit_obj.values())
+
+      placeholders=', '.join(['?']*len(habit_obj))
+      columns=', '.join(row_key)
+      sql=f'INSERT INTO habit ({columns}) VALUES({placeholders})'
+      db.execute(sql,values)
+      db.commit()
+      return redirect(url_for('habits.list'))
+    
+    elif action=="cancel":
+      return redirect(url_for('habits.list'))
+  
+  # GET
+  add_default_obj={
+    'habit_name':'',
+    'repeat_interval':1,
+    'is_end':0
+  }
+  return render_template(
+    'habits/add.html',
+    habit_obj=add_default_obj
+  )
+
+@bp.route('/list',methods=['GET','POST'])
+def list():
+  db=get_db()
+  if request.method=="POST":
+    action=request.form["action"]
+    if action=="back":
+      return redirect(url_for('today.writeTodayDiary'))
+    if action=="add":
+      return redirect(url_for('habits.add'))
+
+  # GET
+  db_habits=db.execute(
+    'SELECT * FROM habit'
+  ).fetchall()
+  if db_habits:
+    return render_template(
+      'habits/list.html',
+      habits=db_habits
+    )
+  
+@bp.route('/<int:habit_id>',methods=["GET","POST"])
+def edit(habit_id):
+  db=get_db()
 
   try:
     # POST
     if request.method=="POST":
       action=request.form["action"]
 
-      # Habit追加のページを渡す
-      if action=="add":
-        obj=db.execute(
-          'SELECT * FROM habit'
-        ).fetchall()
-        for a in obj:
-          print(dict(a))
-
-
-        # edit.htmlで使用する最低限のデータを渡しておきたい
-        default_habit_obj={
-          'habit_name':""
-        }
-        return render_template(
-          'habits/edit.html',
-          habit_obj=default_habit_obj
-        )
-
-      # Habitのリストから戻る
-      elif action=="back":
-        # db.execute(
-        #   'UPDATE habit SET is_active = 0'
-        # )
-        # check_list=request.form.getlist('habit_ids')
-        # if check_list:
-        #   db.execute(
-        #     # WHERE id IN (?, ?, ?)を作っている
-        #     f'UPDATE habit SET is_active =1 WHERE id IN ({",".join("?"*len(check_list))})',
-        #     check_list
-        #   )
-        # db.commit()
-        return redirect(url_for('today.writeTodayDiary'))
+      if action=="cancel":
+        return redirect(url_for('habits.list'))
       
       elif action=="save":
-        print("save")
-    
-    # GET
-    db_habits=db.execute(
-      'SELECT * FROM habit'
-    ).fetchall()
-    if db_habits:
-    # habits=[row[1] for row in db_tasks]
-      return render_template(
-        'habits/list.html',
-        habits=db_habits
-      )
-    else:
-      return "タスクが存在しません"
-  
-  except Exception as e:
-    return str(e)
-  
-@bp.route('/<int:habit_id>',methods=["GET","POST"])
-def habit_id(habit_id):
-  db=get_db()
-
-  try:
-    # POST
-    if request.method=="POST":
-      pass
+        row_habit_obj={
+          'habit_name':request.form.get('habit_name'),
+          'repeat_interval':request.form.get('repeat_interval'),
+          'is_end':1 if request.form.get('is_end')=="on" else 0,
+          'end_date':request.form.get('habitEndDate')
+        }
+        print(dict(row_habit_obj))
+        habit_columns=[f"{k}=?" for k in row_habit_obj.keys()]
+        values = tuple(row_habit_obj.values()) + (habit_id,)
+        # values,placeholders,columns=makeHabitRegeistingObject()
+        sql=f'UPDATE habit SET {', '.join(habit_columns)} WHERE id=?'
+        db.execute(sql,values)
+        db.commit()
     
     # GET
     habit_obj=db.execute(
       'SELECT * FROM habit WHERE id=(?)',(habit_id,)
     ).fetchone()
+    # print(dict(habit_obj))
     return render_template(
       'habits/edit.html',
       habit_obj=habit_obj

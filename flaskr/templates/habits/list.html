@@ -6,11 +6,11 @@
 {% endblock %}
 
 {% block content %}
-  <form method="post" action="{{url_for('habits.edit')}}">
+  <form method="post" action="{{url_for('habits.list')}}">
     <h2>Habits</h2>
     <button type="submit" name="action" value="add">追加</button>
       {% for habit in habits %}
-      <a href="{{url_for('habits.habit_id',habit_id=habit.id)}}">
+      <a href="{{url_for('habits.edit',habit_id=habit.id)}}">
         <div class="card">
           {{habit['habit_name']}}
         </div>
