@@ -10,13 +10,13 @@
       <div id="task_style">
         <h2>振り返り</h2>
         {% for habit in habits %}
-        <input type="checkbox" name="habit_ids" value="{{habit['id']}}">
+        <input type="checkbox" name="habit_ids" value="{{habit['id']}}" {% if habit['id'] in checked_habits %}checked{% endif %}>
         {{habit['habit_name']}}
         <br>
         {% else %}
         <p>No exit habits</p>
         {% endfor %}
-        <br><a href="{{ url_for('habits.edit')}}">編集</a>
+        <br><a href="{{ url_for('habits.list')}}">編集</a>
       </div>
       <div>
         <label for="diary">

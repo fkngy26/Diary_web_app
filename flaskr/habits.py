@@ -64,11 +64,10 @@ def list():
   db_habits=db.execute(
     'SELECT * FROM habit'
   ).fetchall()
-  if db_habits:
-    return render_template(
-      'habits/list.html',
-      habits=db_habits
-    )
+  return render_template(
+    'habits/list.html',
+    habits=db_habits
+  )
   
 @bp.route('/<int:habit_id>',methods=["GET","POST"])
 def edit(habit_id):

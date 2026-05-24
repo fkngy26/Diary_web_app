@@ -2,4 +2,5 @@
 .gitignor
 .python-version
 
-memo.md
+__pycache__/
+instance/
