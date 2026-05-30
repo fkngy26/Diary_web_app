@@ -72,7 +72,6 @@ def list():
 @bp.route('/<int:habit_id>',methods=["GET","POST"])
 def edit(habit_id):
   db=get_db()
-
   try:
     # POST
     if request.method=="POST":
@@ -95,6 +94,14 @@ def edit(habit_id):
         sql=f'UPDATE habit SET {', '.join(habit_columns)} WHERE id=?'
         db.execute(sql,values)
         db.commit()
+      
+      elif action=="delete":
+        db.execute(
+          f'DELETE FROM habit WHERE id=?',(habit_id,)
+        )
+        db.commit()
+        print("delete")
+        return redirect(url_for('habits.list'))
     
     # GET
     habit_obj=db.execute(

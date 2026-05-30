@@ -50,13 +50,14 @@ def writeTodayDiary():
 
       # diary
       diary_text=request.form.get('diary')
+      print(diary_text)
       today_diary_indb=db.execute(
         f'SELECT * FROM diary WHERE date=?',(str(today_txt),)
       ).fetchone()
 
       if today_diary_indb:
         db.execute(
-          "UPDATE diary SET date=?, diary_text=? WHERE date=?",(today_txt,diary_text,diary_text)
+          "UPDATE diary SET date=?, diary_text=? WHERE date=?",(today_txt,diary_text,today_txt)
         )
       else:
         db.execute(
@@ -79,6 +80,8 @@ def writeTodayDiary():
       print("diary")
       for d in diaries:
         print(dict(d))
+
+      return redirect(url_for('log.logList'))
 
   # ==================================
   # 今日表示する必要があるHabitを抽出する。（未）
