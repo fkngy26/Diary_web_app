@@ -7,7 +7,7 @@
 {% block content %}
   <h2>Habits Log</h2>
   {%for log in logs %}
-  <a href="https://example.com" class="card-link">
+  <a href="{{url_for('log.logPreview',log_date=log.date)}}" class="card-link">
     <div class="card">
       <h3>{{log['date']}}</h3>
     </div>

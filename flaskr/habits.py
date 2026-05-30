@@ -64,6 +64,8 @@ def list():
   db_habits=db.execute(
     'SELECT * FROM habit'
   ).fetchall()
+  for i in db_habits:
+    print(dict(i))
   return render_template(
     'habits/list.html',
     habits=db_habits

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}{{date}}{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <h2>Habits Log</h2>
+  {%for log in habits_log %}
+    <h3>{{log.habit_name}}</h3>
+  {% endfor %}
+  <h2>Diary</h2>
+  <h3>{{diary_log['diary_text']}}</h3>
+{% endblock %}
