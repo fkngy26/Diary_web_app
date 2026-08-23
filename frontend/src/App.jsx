@@ -12,6 +12,7 @@ function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/:test" element={<Dashboard />} />
           <Route path="/actions" element={<ActionList />} />
           <Route path="/actions/new" element={<ActionEditor />} />
           <Route path="/actions/:actionId" element={<ActionEditor />} />

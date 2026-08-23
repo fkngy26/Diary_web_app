@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import "../App.css";
 
 function ActionList() {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ function ActionList() {
 
   return (
     <div>
-      <h1>ActionEditor</h1>
+      <h1>ActionList</h1>
 
       <form
         onSubmit={handleSearchSubmit}

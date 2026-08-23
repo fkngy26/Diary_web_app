@@ -132,6 +132,20 @@ def delete_action(action_id):
 
     return jsonify({'message': 'deleted'}), 200
 
+# 全削除・リセット
+@bp.route('',methods=['DELETE'])
+def reset_action():
+    try:
+        db=get_db()
+        db.execute(
+                'DELETE FROM actions'
+            )
+        db.commit()
+        return jsonify({'message': 'deleted'}), 200
+    except Exception as e:
+        print(str(e))
+        return jsonify({'message': 'deleted'}), 500    
+
 # 特定Actionの、直近1か月分の統計を取得
 @bp.route('/<int:action_id>/stats', methods=['GET'])
 def get_action_stats(action_id):
