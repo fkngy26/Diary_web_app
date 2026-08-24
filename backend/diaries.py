@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from database import get_db
+import sqlite3
 
 bp = Blueprint('diaries', __name__, url_prefix='/api/diaries')
 
@@ -91,4 +92,46 @@ def upsert_diary(date):
 
     db.commit()
 
-    return jsonify({'message': 'saved', 'diary_id': diary_id})
+    updated_row = db.execute('SELECT * FROM diaries WHERE id = ?', (diary_id,)).fetchone()
+    return jsonify(row_to_dict(updated_row))
+
+# 日付の変更
+@bp.route('/<int:diary_id>/date', methods=['PATCH'])
+def update_diary_date(diary_id):
+    db = get_db()
+
+    existing = db.execute('SELECT * FROM diaries WHERE id = ?', (diary_id,)).fetchone()
+    if existing is None:
+        return jsonify({'error': 'Diary not found'}), 404
+
+    data = request.get_json()
+    new_date = data.get('date')
+    if not new_date:
+        return jsonify({'error': 'date is required'}), 400
+
+    try:
+        db.execute(
+            'UPDATE diaries SET date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            (new_date, diary_id)
+        )
+        db.commit()
+    except sqlite3.IntegrityError:
+        return jsonify({'error': f'{new_date} の日記はすでに存在します'}), 409
+
+    updated_row = db.execute('SELECT * FROM diaries WHERE id = ?', (diary_id,)).fetchone()
+    return jsonify(row_to_dict(updated_row))
+
+
+# 削除(物理削除)
+@bp.route('/<date>', methods=['DELETE'])
+def delete_diary(date):
+    db = get_db()
+
+    existing = db.execute('SELECT * FROM diaries WHERE date = ?', (date,)).fetchone()
+    if existing is None:
+        return jsonify({'error': 'Diary not found'}), 404
+
+    db.execute('DELETE FROM diaries WHERE date = ?', (date,))
+    db.commit()
+
+    return jsonify({'message': 'deleted'}), 200

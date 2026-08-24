@@ -13,8 +13,10 @@ function Diary() {
   const { date } = useParams();
   const navigate = useNavigate();
 
+  const [diaryId, setDiaryId] = useState(null);
+  const [editedDate, setEditedDate] = useState(date); // 編集用の日付(変更可能)
   const [memo, setMemo] = useState("");
-  const [actionLogs, setActionLogs] = useState([]); // [{action_id, title, status}, ...]
+  const [actionLogs, setActionLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -28,6 +30,8 @@ function Diary() {
     setError(null);
     try {
       const data = await api.get(`/diaries/${date}`);
+      setDiaryId(data.id || null); // まだ保存されていない日はidが無い
+      setEditedDate(date);
       setMemo(data.memo || "");
       setActionLogs(data.action_logs || []);
     } catch (err) {
@@ -49,7 +53,6 @@ function Diary() {
     setSaving(true);
     setError(null);
 
-    // status が未入力(null)のものは送らない
     const payload = {
       memo,
       action_logs: actionLogs
@@ -58,11 +61,33 @@ function Diary() {
     };
 
     try {
-      await api.put(`/diaries/${date}`, payload);
+      // 1. まず現在のURLの日付(date)で内容を保存する
+      const saved = await api.put(`/diaries/${date}`, payload);
+
+      // 2. 日付が変更されていれば、続けて日付だけ変更するAPIを呼ぶ
+      if (editedDate !== date) {
+        await api.patch(`/diaries/${saved.id}/date`, { date: editedDate });
+      }
+
       navigate("/diaries");
     } catch (err) {
       setError(err.message);
     } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    const confirmed = window.confirm(`${date} の日記を削除しますか?`);
+    if (!confirmed) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      await api.delete(`/diaries/${date}`);
+      navigate("/diaries");
+    } catch (err) {
+      setError(err.message);
       setSaving(false);
     }
   }
@@ -75,7 +100,15 @@ function Diary() {
 
       {error && <p style={{ color: "red" }}>エラー: {error}</p>}
 
-      <p>{date}</p>
+      <div style={{ marginBottom: "16px" }}>
+        <label>日付</label>
+        <br />
+        <input
+          type="date"
+          value={editedDate}
+          onChange={(e) => setEditedDate(e.target.value)}
+        />
+      </div>
 
       <div style={{ marginBottom: "24px" }}>
         {actionLogs.map((log) => (
@@ -122,6 +155,16 @@ function Diary() {
         >
           キャンセル
         </button>
+        {diaryId && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={saving}
+            style={{ backgroundColor: "#ff8080", marginLeft: "auto" }}
+          >
+            削除
+          </button>
+        )}
       </div>
     </div>
   );
