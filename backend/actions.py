@@ -11,6 +11,12 @@ ALLOWED_INTERVAL_UNITS = ['day', 'week', 'month', 'year']
 def row_to_dict(row):
     return dict(row)
 
+@bp.route('/getall', methods=['GET'])
+def get_all_actions():
+    db = get_db()
+    rows = db.execute('SELECT * FROM actions').fetchall()
+    return jsonify([row_to_dict(row) for row in rows])
+
 @bp.route('', methods=['GET'])
 def get_actions():
     db = get_db()
@@ -18,15 +24,17 @@ def get_actions():
     sort = request.args.get('sort', 'created_at')
     order = request.args.get('order', 'desc')
     search = request.args.get('search', '')
+    include_inactive = request.args.get('include_inactive', 'false') == 'true'
 
-    # SQLインジェクション対策:許可されたカラム名以外は受け付けない
     if sort not in ALLOWED_SORT_COLUMNS:
         sort = 'created_at'
     order = 'ASC' if order.lower() == 'asc' else 'DESC'
 
+    active_condition = '' if include_inactive else 'AND is_active = 1'
+
     query = f'''
         SELECT * FROM actions
-        WHERE is_active = 1 AND title LIKE ?
+        WHERE title LIKE ? {active_condition}
         ORDER BY {sort} {order}
     '''
     rows = db.execute(query, (f'%{search}%',)).fetchall()
@@ -151,8 +159,9 @@ def reset_action():
 def get_action_stats(action_id):
     db = get_db()
 
+    print(action_id)
     action = db.execute(
-        'SELECT * FROM actions WHERE id = ? AND is_active = 1', (action_id,)
+        'SELECT * FROM actions WHERE id = ?', (action_id,)
     ).fetchone()
     if action is None:
         return jsonify({'error': 'Action not found'}), 404

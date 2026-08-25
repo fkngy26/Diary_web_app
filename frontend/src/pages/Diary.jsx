@@ -113,11 +113,17 @@ function Diary() {
       <div style={{ marginBottom: "24px" }}>
         {actionLogs.map((log) => (
           <div key={log.action_id} style={{ marginBottom: "8px" }}>
-            <span style={{ marginRight: "12px" }}>{log.title}</span>
+            <span style={{ marginRight: "12px" }}>
+              {log.title}
+              {log.is_archived === 1 && (
+                <span style={{ color: "#999" }}> (非表示)</span>
+              )}
+            </span>
             {STATUS_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
+                disabled={log.is_archived === 1}
                 onClick={() => handleStatusChange(log.action_id, opt.value)}
                 style={{
                   fontWeight: log.status === opt.value ? "bold" : "normal",

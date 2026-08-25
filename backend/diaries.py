@@ -26,29 +26,52 @@ def get_diaries():
 def get_diary(date):
     db = get_db()
 
-    diary = db.execute(
-        'SELECT * FROM diaries WHERE date = ?', (date,)
-    ).fetchone()
-
-    # その日の記録がまだ無い場合、日記は空として扱う
+    diary = db.execute('SELECT * FROM diaries WHERE date = ?', (date,)).fetchone()
     diary_dict = row_to_dict(diary) if diary else {'date': date, 'memo': ''}
 
-    # 有効なActionと、その日のログを紐付けて取得する
-    logs = db.execute(
-        '''
-        SELECT actions.id AS action_id, actions.title, logs.status
-        FROM actions
-        LEFT JOIN diary_action_logs AS logs
-            ON logs.action_id = actions.id
-            AND logs.diary_id = (SELECT id FROM diaries WHERE date = ?)
-        WHERE actions.is_active = 1
-        ORDER BY actions.created_at
-        ''',
-        (date,)
+    # 1. 現在アクティブな全Action(記録の有無を問わず、入力対象として表示)
+    active_actions = db.execute(
+        'SELECT id, title FROM actions WHERE is_active = 1 ORDER BY created_at'
     ).fetchall()
 
-    diary_dict['action_logs'] = [row_to_dict(row) for row in logs]
+    diary_id = diary['id'] if diary else None
+    log_rows = db.execute(
+        'SELECT action_id, status FROM diary_action_logs WHERE diary_id = ?', (diary_id,)
+    ).fetchall() if diary_id else []
+    status_by_action_id = {row['action_id']: row['status'] for row in log_rows}
 
+    action_logs = [
+        {
+            'action_id': a['id'],
+            'title': a['title'],
+            'status': status_by_action_id.get(a['id']),
+            'is_archived': 0,
+        }
+        for a in active_actions
+    ]
+
+    # 2. 記録は残っているが、対応するActionが非アクティブなもの(過去の記録として表示のみ)
+    archived_rows = db.execute(
+        '''
+        SELECT actions.id AS action_id, actions.title, logs.status
+        FROM diary_action_logs AS logs
+        JOIN actions ON actions.id = logs.action_id
+        WHERE logs.diary_id = ? AND actions.is_active = 0
+        ''',
+        (diary_id,)
+    ).fetchall() if diary_id else []
+
+    action_logs += [
+        {
+            'action_id': row['action_id'],
+            'title': row['title'],
+            'status': row['status'],
+            'is_archived': 1,
+        }
+        for row in archived_rows
+    ]
+
+    diary_dict['action_logs'] = action_logs
     return jsonify(diary_dict)
 
 
