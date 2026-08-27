@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from database import get_db
-import sqlite3
+import psycopg2
 
 bp = Blueprint('diaries', __name__, url_prefix='/api/diaries')
 
@@ -15,9 +15,9 @@ def row_to_dict(row):
 @bp.route('', methods=['GET'])
 def get_diaries():
     db = get_db()
-    rows = db.execute(
-        'SELECT * FROM diaries ORDER BY date DESC'
-    ).fetchall()
+    with db.cursor() as cur:
+        cur.execute('SELECT * FROM diaries ORDER BY date DESC')
+        rows=cur.fetchall()
     return jsonify([row_to_dict(row) for row in rows])
 
 
@@ -26,18 +26,26 @@ def get_diaries():
 def get_diary(date):
     db = get_db()
 
-    diary = db.execute('SELECT * FROM diaries WHERE date = ?', (date,)).fetchone()
+    with db.cursor() as cur:
+        cur.execute('SELECT * FROM diaries WHERE date = %s', (date,))
+        diary=cur.fetchone()
+
     diary_dict = row_to_dict(diary) if diary else {'date': date, 'memo': ''}
 
     # 1. 現在アクティブな全Action(記録の有無を問わず、入力対象として表示)
-    active_actions = db.execute(
-        'SELECT id, title FROM actions WHERE is_active = 1 ORDER BY created_at'
-    ).fetchall()
+    with db.cursor() as cur:
+        cur.execute('SELECT id, title FROM actions WHERE is_active = 1 ORDER BY created_at')
+        active_actions = cur.fetchall()
 
     diary_id = diary['id'] if diary else None
-    log_rows = db.execute(
-        'SELECT action_id, status FROM diary_action_logs WHERE diary_id = ?', (diary_id,)
-    ).fetchall() if diary_id else []
+    if diary_id:
+        with db.cursor() as cur:
+            cur.execute(
+                    'SELECT action_id, status FROM diary_action_logs WHERE diary_id = %s', (diary_id,)
+                )
+            log_rows=cur.fetchall()
+    else:
+        log_rows=[]
     status_by_action_id = {row['action_id']: row['status'] for row in log_rows}
 
     action_logs = [
@@ -51,15 +59,20 @@ def get_diary(date):
     ]
 
     # 2. 記録は残っているが、対応するActionが非アクティブなもの(過去の記録として表示のみ)
-    archived_rows = db.execute(
-        '''
-        SELECT actions.id AS action_id, actions.title, logs.status
-        FROM diary_action_logs AS logs
-        JOIN actions ON actions.id = logs.action_id
-        WHERE logs.diary_id = ? AND actions.is_active = 0
-        ''',
-        (diary_id,)
-    ).fetchall() if diary_id else []
+    if diary_id:
+        with db.cursor() as cur:
+            cur.execute(
+                '''
+                SELECT actions.id AS action_id, actions.title, logs.status
+                FROM diary_action_logs AS logs
+                JOIN actions ON actions.id = logs.action_id
+                WHERE logs.diary_id = %s AND actions.is_active = 0
+                ''',
+                (diary_id,)
+            )
+            archived_rows=cur.fetchall()
+    else:
+        archived_rows=[]
 
     action_logs += [
         {
@@ -90,32 +103,45 @@ def upsert_diary(date):
     db = get_db()
 
     # 既存の日記を確認
-    existing = db.execute('SELECT id FROM diaries WHERE date = ?', (date,)).fetchone()
+    with db.cursor() as cur:
+        cur.execute('SELECT id FROM diaries WHERE date = %s', (date,))
+        existing=cur.fetchone()
 
-    if existing:
-        db.execute(
-            'UPDATE diaries SET memo = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-            (memo, existing['id'])
-        )
-        diary_id = existing['id']
-    else:
-        cur = db.execute(
-            'INSERT INTO diaries (date, memo) VALUES (?, ?)',
-            (date, memo)
-        )
-        diary_id = cur.lastrowid
+    try:
+        if existing:
+            with db.cursor() as cur:
+                cur.execute(
+                    'UPDATE diaries SET memo = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                    (memo, existing['id'])
+                )
+                diary_id = existing['id']
+        else:
+            with db.cursor() as cur:
+                cur.execute(
+                    'INSERT INTO diaries (date, memo) VALUES (%s, %s) RETURNING id',
+                    (date, memo)
+                )
+                diary_id = cur.fetchone()
+    except Exception as e:
+        db.rollback()
 
     # ログは一旦全部消してから入れ直す(シンプルで確実な方法)
-    db.execute('DELETE FROM diary_action_logs WHERE diary_id = ?', (diary_id,))
+    with db.cursor() as cur:
+        cur.execute('DELETE FROM diary_action_logs WHERE diary_id = %s', (diary_id,))
+
     for log in action_logs:
-        db.execute(
-            'INSERT INTO diary_action_logs (diary_id, action_id, status) VALUES (?, ?, ?)',
-            (diary_id, log['action_id'], log['status'])
-        )
+        with db.cursor() as cur:
+            cur.execute(
+                'INSERT INTO diary_action_logs (diary_id, action_id, status) VALUES (%s, %s, %s)',
+                (diary_id, log['action_id'], log['status'])
+            )
 
     db.commit()
 
-    updated_row = db.execute('SELECT * FROM diaries WHERE id = ?', (diary_id,)).fetchone()
+    with db.cursor() as cur:
+        cur.execute('SELECT * FROM diaries WHERE id = %s', (diary_id,))
+        updated_row=cur.fetchone()
+
     return jsonify(row_to_dict(updated_row))
 
 # 日付の変更
@@ -123,7 +149,10 @@ def upsert_diary(date):
 def update_diary_date(diary_id):
     db = get_db()
 
-    existing = db.execute('SELECT * FROM diaries WHERE id = ?', (diary_id,)).fetchone()
+    with db.cursor() as cur:
+        cur.execute('SELECT * FROM diaries WHERE id = %s', (diary_id,))
+        existing=cur.fetchone()
+
     if existing is None:
         return jsonify({'error': 'Diary not found'}), 404
 
@@ -133,15 +162,18 @@ def update_diary_date(diary_id):
         return jsonify({'error': 'date is required'}), 400
 
     try:
-        db.execute(
-            'UPDATE diaries SET date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-            (new_date, diary_id)
-        )
+        with db.cursor as cur:
+            cur.execute(
+                'UPDATE diaries SET date = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s',
+                (new_date, diary_id)
+            )
         db.commit()
-    except sqlite3.IntegrityError:
+    except psycopg2.errors.IntegrityError:
         return jsonify({'error': f'{new_date} の日記はすでに存在します'}), 409
 
-    updated_row = db.execute('SELECT * FROM diaries WHERE id = ?', (diary_id,)).fetchone()
+    with db.cursor as cur:
+        cur.execute('SELECT * FROM diaries WHERE id = %s', (diary_id,))
+        updated_row = cur.fetchone()
     return jsonify(row_to_dict(updated_row))
 
 
@@ -150,11 +182,14 @@ def update_diary_date(diary_id):
 def delete_diary(date):
     db = get_db()
 
-    existing = db.execute('SELECT * FROM diaries WHERE date = ?', (date,)).fetchone()
+    with db.cursor as cur:
+        cur.execute('SELECT * FROM diaries WHERE date = ?', (date,))
+        existing = cur.fetchone()
     if existing is None:
         return jsonify({'error': 'Diary not found'}), 404
 
-    db.execute('DELETE FROM diaries WHERE date = ?', (date,))
+    with db.cursor as cur:
+        cur.execute('DELETE FROM diaries WHERE date = %s', (date,))
     db.commit()
 
     return jsonify({'message': 'deleted'}), 200

@@ -1,7 +1,8 @@
 from flask import Blueprint, jsonify, request, g
 from database import get_db
 from datetime import timedelta, date
-import sqlite3
+import database
+from database import get_db
 
 bp = Blueprint('actions', __name__, url_prefix='/api/actions')
 
@@ -34,10 +35,12 @@ def get_actions():
 
     query = f'''
         SELECT * FROM actions
-        WHERE title LIKE ? {active_condition}
+        WHERE title LIKE %s {active_condition}
         ORDER BY {sort} {order}
     '''
-    rows = db.execute(query, (f'%{search}%',)).fetchall()
+    with db.cursor() as cur:
+        cur.execute(query, (f'%{search}%',))
+        rows=cur.fetchall()
 
     return jsonify([row_to_dict(row) for row in rows])
 
@@ -46,10 +49,10 @@ def get_actions():
 @bp.route('/<int:action_id>', methods=['GET'])
 def get_action(action_id):
     db = get_db()
-    row = db.execute(
-        'SELECT * FROM actions WHERE id = ? AND is_active = 1',
-        (action_id,)
-    ).fetchone()
+    query='SELECT * FROM actions WHERE id = %s AND is_active = 1'
+    with db.cursor() as cur:
+        cur.execute(query,(action_id,))
+        row = cur.fetchone()
 
     if row is None:
         return jsonify({'error': 'Action not found'}), 404
@@ -75,16 +78,21 @@ def create_action():
         return jsonify({'error': 'invalid interval_unit'}), 400
 
     db = get_db()
-    cur = db.execute(
-        '''
-        INSERT INTO actions (title, has_deadline, deadline_date, interval_value, interval_unit)
-        VALUES (?, ?, ?, ?, ?)
-        ''',
-        (title, has_deadline, deadline_date, interval_value, interval_unit)
-    )
+    with db.cursor() as cur:
+        cur.execute(
+            '''
+            INSERT INTO actions (title, has_deadline, deadline_date, interval_value, interval_unit)
+            VALUES (%s, %s, %s, %s, %s) RETURNIGN id
+            ''',
+            (title, has_deadline, deadline_date, interval_value, interval_unit)
+        )
+        new_id = cur.fetchone()
     db.commit()
 
-    new_row = db.execute('SELECT * FROM actions WHERE id = ?', (cur.lastrowid,)).fetchone()
+    with db.cursor() as cur:
+        cur.execute('SELECT * FROM actions WHERE id = %s', (new_id,))
+        new_row=cur.fetchone()
+
     return jsonify(row_to_dict(new_row)), 201
 
 
@@ -92,7 +100,10 @@ def create_action():
 @bp.route('/<int:action_id>', methods=['PUT'])
 def update_action(action_id):
     db = get_db()
-    existing = db.execute('SELECT * FROM actions WHERE id = ? AND is_active = 1', (action_id,)).fetchone()
+    with db.cursor() as cur:
+        cur.execute('SELECT * FROM actions WHERE id = %s AND is_active = 1', (action_id,))
+        existing=cur.fetchone()
+
     if existing is None:
         return jsonify({'error': 'Action not found'}), 404
 
@@ -109,15 +120,16 @@ def update_action(action_id):
     if interval_unit not in ALLOWED_INTERVAL_UNITS:
         return jsonify({'error': 'invalid interval_unit'}), 400
 
-    db.execute(
-        '''
-        UPDATE actions
-        SET title = ?, has_deadline = ?, deadline_date = ?, interval_value = ?, interval_unit = ?,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-        ''',
-        (title, has_deadline, deadline_date, interval_value, interval_unit, action_id)
-    )
+    query='''
+            UPDATE actions
+            SET title = %s, has_deadline = %s, deadline_date = %s, interval_value = %s, interval_unit = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+            '''
+    placeholder=(title, has_deadline, deadline_date, interval_value, interval_unit, action_id)
+    with db.cursor() as cur:
+        cur.execute(query,placeholder)
+
     db.commit()
 
     updated_row = db.execute('SELECT * FROM actions WHERE id = ?', (action_id,)).fetchone()
@@ -128,14 +140,18 @@ def update_action(action_id):
 @bp.route('/<int:action_id>', methods=['DELETE'])
 def delete_action(action_id):
     db = get_db()
-    existing = db.execute('SELECT * FROM actions WHERE id = ? AND is_active = 1', (action_id,)).fetchone()
+    with db.cursor() as cur:
+        cur.execute('SELECT * FROM actions WHERE id = %s AND is_active = 1', (action_id,))
+        existing=cur.fetchone()
+
     if existing is None:
         return jsonify({'error': 'Action not found'}), 404
 
-    db.execute(
-        'UPDATE actions SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        (action_id,)
-    )
+    with db.cursor as cur:
+        cur.execute(
+            'UPDATE actions SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = %s',
+            (action_id,)
+        )
     db.commit()
 
     return jsonify({'message': 'deleted'}), 200
@@ -145,9 +161,10 @@ def delete_action(action_id):
 def reset_action():
     try:
         db=get_db()
-        db.execute(
-                'DELETE FROM actions'
-            )
+        with db.cursor() as cur:
+            cur.execute(
+                    'DELETE FROM actions'
+                )
         db.commit()
         return jsonify({'message': 'deleted'}), 200
     except Exception as e:
@@ -158,27 +175,27 @@ def reset_action():
 @bp.route('/<int:action_id>/stats', methods=['GET'])
 def get_action_stats(action_id):
     db = get_db()
+    with db.cursor() as cur:
+        cur.execute('SELECT * FROM actions WHERE id = %s', (action_id,))
+        action=cur.fetchone()
 
-    print(action_id)
-    action = db.execute(
-        'SELECT * FROM actions WHERE id = ?', (action_id,)
-    ).fetchone()
     if action is None:
         return jsonify({'error': 'Action not found'}), 404
 
     today = date.today()
     start_date = today - timedelta(days=29)  # 今日を含めて直近30日間
 
-    rows = db.execute(
-        '''
+    query='''
         SELECT diaries.date AS date, logs.status AS status
         FROM diaries
         JOIN diary_action_logs AS logs
-            ON logs.diary_id = diaries.id AND logs.action_id = ?
-        WHERE diaries.date >= ?
-        ''',
-        (action_id, start_date.isoformat())
-    ).fetchall()
+            ON logs.diary_id = diaries.id AND logs.action_id = %s
+        WHERE diaries.date >= %s
+        '''
+
+    with db.cursor() as cur:
+        cur.execute(query,(action_id, start_date.isoformat()))
+        rows = cur.fetchall()
 
     # 日付をキーにした辞書に変換しておく(検索しやすくするため)
     status_by_date = {row['date']: row['status'] for row in rows}
