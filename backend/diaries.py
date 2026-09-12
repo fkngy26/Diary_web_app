@@ -34,7 +34,7 @@ def get_diary(date):
 
     # 1. 現在アクティブな全Action(記録の有無を問わず、入力対象として表示)
     with db.cursor() as cur:
-        cur.execute('SELECT id, title FROM actions WHERE is_active = 1 ORDER BY created_at')
+        cur.execute('SELECT id, title FROM actions WHERE is_active = TRUE ORDER BY created_at')
         active_actions = cur.fetchall()
 
     diary_id = diary['id'] if diary else None
@@ -66,7 +66,7 @@ def get_diary(date):
                 SELECT actions.id AS action_id, actions.title, logs.status
                 FROM diary_action_logs AS logs
                 JOIN actions ON actions.id = logs.action_id
-                WHERE logs.diary_id = %s AND actions.is_active = 0
+                WHERE logs.diary_id = %s AND actions.is_active = FALSE
                 ''',
                 (diary_id,)
             )
