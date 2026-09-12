@@ -8,11 +8,14 @@ load_dotenv()  # .envファイルの内容を読み込む
 
 
 def get_db():
-    if 'db' not in g:
-        g.db = psycopg2.connect(
-            os.environ['DATABASE_URL'],
-            cursor_factory=psycopg2.extras.RealDictCursor
-        )
+    try:
+        if 'db' not in g:
+            g.db = psycopg2.connect(
+                os.environ['DATABASE_URL'],
+                cursor_factory=psycopg2.extras.RealDictCursor
+            )
+    except Exception as e:
+        print(str(e))
     return g.db
 
 

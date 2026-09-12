@@ -111,7 +111,7 @@ def upsert_diary(date):
         if existing:
             with db.cursor() as cur:
                 cur.execute(
-                    'UPDATE diaries SET memo = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                    'UPDATE diaries SET memo = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s',
                     (memo, existing['id'])
                 )
                 diary_id = existing['id']
@@ -121,9 +121,10 @@ def upsert_diary(date):
                     'INSERT INTO diaries (date, memo) VALUES (%s, %s) RETURNING id',
                     (date, memo)
                 )
-                diary_id = cur.fetchone()
+                diary_id = cur.fetchone()['id']
     except Exception as e:
         db.rollback()
+        return jsonify({'error':'idらへんのエラー'}),400
 
     # ログは一旦全部消してから入れ直す(シンプルで確実な方法)
     with db.cursor() as cur:
@@ -162,16 +163,17 @@ def update_diary_date(diary_id):
         return jsonify({'error': 'date is required'}), 400
 
     try:
-        with db.cursor as cur:
+        with db.cursor() as cur:
             cur.execute(
                 'UPDATE diaries SET date = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s',
                 (new_date, diary_id)
             )
         db.commit()
     except psycopg2.errors.IntegrityError:
+        db.rollback()
         return jsonify({'error': f'{new_date} の日記はすでに存在します'}), 409
 
-    with db.cursor as cur:
+    with db.cursor() as cur:
         cur.execute('SELECT * FROM diaries WHERE id = %s', (diary_id,))
         updated_row = cur.fetchone()
     return jsonify(row_to_dict(updated_row))
@@ -183,7 +185,7 @@ def delete_diary(date):
     db = get_db()
 
     with db.cursor as cur:
-        cur.execute('SELECT * FROM diaries WHERE date = ?', (date,))
+        cur.execute('SELECT * FROM diaries WHERE date = %s', (date,))
         existing = cur.fetchone()
     if existing is None:
         return jsonify({'error': 'Diary not found'}), 404

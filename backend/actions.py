@@ -14,8 +14,10 @@ def row_to_dict(row):
 
 @bp.route('/getall', methods=['GET'])
 def get_all_actions():
-    db = get_db()
-    rows = db.execute('SELECT * FROM actions').fetchall()
+    db=get_db()
+    with db.cursor() as cur:
+        cur.execute('SELECT * FROM actions')
+        rows=cur.fetchall()
     return jsonify([row_to_dict(row) for row in rows])
 
 @bp.route('', methods=['GET'])
@@ -31,7 +33,7 @@ def get_actions():
         sort = 'created_at'
     order = 'ASC' if order.lower() == 'asc' else 'DESC'
 
-    active_condition = '' if include_inactive else 'AND is_active = 1'
+    active_condition = '' if include_inactive else 'AND is_active = TRUE'
 
     query = f'''
         SELECT * FROM actions
@@ -49,7 +51,7 @@ def get_actions():
 @bp.route('/<int:action_id>', methods=['GET'])
 def get_action(action_id):
     db = get_db()
-    query='SELECT * FROM actions WHERE id = %s AND is_active = 1'
+    query='SELECT * FROM actions WHERE id = %s AND is_active = TRUE'
     with db.cursor() as cur:
         cur.execute(query,(action_id,))
         row = cur.fetchone()
@@ -79,14 +81,14 @@ def create_action():
 
     db = get_db()
     with db.cursor() as cur:
-        cur.execute(
+        new_id=cur.execute(
             '''
             INSERT INTO actions (title, has_deadline, deadline_date, interval_value, interval_unit)
-            VALUES (%s, %s, %s, %s, %s) RETURNIGN id
+            VALUES (%s, %s, %s, %s, %s) RETURNING id
             ''',
             (title, has_deadline, deadline_date, interval_value, interval_unit)
         )
-        new_id = cur.fetchone()
+        new_id = cur.fetchone()['id']
     db.commit()
 
     with db.cursor() as cur:
@@ -101,7 +103,7 @@ def create_action():
 def update_action(action_id):
     db = get_db()
     with db.cursor() as cur:
-        cur.execute('SELECT * FROM actions WHERE id = %s AND is_active = 1', (action_id,))
+        cur.execute('SELECT * FROM actions WHERE id = %s AND is_active = TRUE', (action_id,))
         existing=cur.fetchone()
 
     if existing is None:
@@ -132,7 +134,9 @@ def update_action(action_id):
 
     db.commit()
 
-    updated_row = db.execute('SELECT * FROM actions WHERE id = ?', (action_id,)).fetchone()
+    with db.cursor() as cur:
+        cur.execute('SELECT * FROM actions WHERE id = %s', (action_id,))
+        updated_row=cur.fetchone()
     return jsonify(row_to_dict(updated_row))
 
 
@@ -141,15 +145,15 @@ def update_action(action_id):
 def delete_action(action_id):
     db = get_db()
     with db.cursor() as cur:
-        cur.execute('SELECT * FROM actions WHERE id = %s AND is_active = 1', (action_id,))
+        cur.execute('SELECT * FROM actions WHERE id = %s AND is_active = TRUE', (action_id,))
         existing=cur.fetchone()
 
     if existing is None:
         return jsonify({'error': 'Action not found'}), 404
 
-    with db.cursor as cur:
+    with db.cursor() as cur:
         cur.execute(
-            'UPDATE actions SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = %s',
+            'UPDATE actions SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = %s',
             (action_id,)
         )
     db.commit()
