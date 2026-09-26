@@ -1,14 +1,18 @@
 import { NavLink } from "react-router-dom";
 import { navItems } from "./navItems";
 
-function Sidebar() {
+function BottomNav() {
   return (
     <nav
       style={{
-        width: "200px",
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        display: "flex",
         backgroundColor: "#cceeff",
-        padding: "24px 16px",
-        height: "100vh",
+        borderTop: "1px solid #99ccee",
+        zIndex: 10,
       }}
     >
       {navItems.map((item) => (
@@ -16,8 +20,9 @@ function Sidebar() {
           key={item.to}
           to={item.to}
           style={({ isActive }) => ({
-            display: "block",
-            marginBottom: "16px",
+            flex: 1,
+            padding: "14px 0",
+            textAlign: "center",
             textDecoration: "none",
             color: "#000",
             fontWeight: isActive ? "bold" : "normal",
@@ -30,4 +35,4 @@ function Sidebar() {
   );
 }
 
-export default Sidebar;
+export default BottomNav;

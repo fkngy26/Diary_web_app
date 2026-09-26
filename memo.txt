@@ -2,3 +2,8 @@
 - Dashboardの項目を示す部分を修正する。
 - スマホ版の作成
 - IDとパスワードの入力
+
+起動方法
+uv run app.py
+npm run dev
+docer start diary-db
