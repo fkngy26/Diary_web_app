@@ -6,4 +6,4 @@
 起動方法
 uv run app.py
 npm run dev
-docer start diary-db
+docker start diary-db

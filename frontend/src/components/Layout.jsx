@@ -1,35 +1,17 @@
-// import { Outlet } from "react-router-dom";
-// import Sidebar from "./Sidebar";
-
-// function Layout() {
-//   return (
-//     <div style={{ display: "flex" }}>
-//       <Sidebar />
-//       <main style={{ flex: 1, padding: "32px" }}>
-//         <Outlet />
-//       </main>
-//     </div>
-//   );
-// }
-
-// export default Layout;
-
-import { useState } from "react";
 import { Outlet } from "react-router-dom";
-import { useMediaQuery } from "react-responsive";
+import { useIsMobile } from "../hooks/useIsMobile";
 import Sidebar from "./Sidebar";
 import BottomNav from "./BottomNav";
 
 function Layout() {
-  const isMobile = useMediaQuery({ maxWidth: 767 });
-  const [menuOpen, setMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   return (
     <div style={{ display: "flex" }}>
       {/* PC: サイドバーを常に表示 */}
       {!isMobile && <Sidebar />}
 
-      {/* スマホ: ボタンで開閉 */}
+      {/* スマホ: 下部ナビを表示 */}
       {isMobile && <BottomNav />}
 
       <main
